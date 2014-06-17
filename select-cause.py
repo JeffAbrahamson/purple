@@ -2,6 +2,9 @@
 
 """
 Choose a campaign at random.  Return the chosen line from the campaign file.
+
+This script assumes it is being run from the immediate parent directory of
+www (in which it may find the causes file).
 """
 
 from random import randint

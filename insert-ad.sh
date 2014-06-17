@@ -1,5 +1,12 @@
 #!/bin/bash
 
+## Insert an ad on the root purple page if an ad is scheduled to be run.
+## If not, and if any causes are availble, consider inserting a cause.
+## Otherwise, make sure the default page displays.
+##
+## This script assumes it is being run from the immediate parent
+## directory of www/.
+
 present_index() {
     cp www/index-default.html www/index.html
 }
