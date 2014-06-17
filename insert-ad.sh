@@ -4,11 +4,11 @@ present_index() {
     cp www/index-default.html www/index.html
 }
 
-present_campaign() {
-    campaign=$(./select-campaign.py)
-    label=$(echo $campaign | awk -F'|' '{print $1}')
-    page=$(echo $campaign | awk -F'|' '{print $2}')
-    sed -e "s/Sponsored link:/Support purple causes/; s|advertise.html|campaigns/$page|; s/This is you/$label/;" \
+present_cause() {
+    cause=$(./select-cause.py)
+    label=$(echo $cause | awk -F'|' '{print $1}')
+    page=$(echo $cause | awk -F'|' '{print $2}')
+    sed -e "s/Sponsored link:/Support purple causes/; s|advertise.html|causes/$page|; s/This is you/$label/;" \
 	< templates/index.html > www/index.html
 }
 
@@ -30,7 +30,7 @@ main() {
 	return
     fi
     if [ $(($RANDOM % 10)) = 0 ]; then
-	present_campaign
+	present_cause
 	return
     fi
     present_index

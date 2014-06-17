@@ -2,6 +2,6 @@
 #   Blank lines and lines beginning with '#' are ignored.
 #   Lines are '|'-separated text.
 #   Fields are as follows:
-#     - campaign label
-#     - campaign URL (assumed to be in www/campaigns/)
+#     - cause label
+#     - cause URL (assumed to be in www/causes/)
 
