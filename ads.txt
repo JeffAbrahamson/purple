@@ -1,0 +1,18 @@
+# Format:
+#   Blank lines and lines beginning with '#' are ignored.
+#   Lines are tab-separated text.
+#   Fields are as follows:
+#     - date as yyyy-mm-dd
+#     - ad text
+#     - ad URL
+
+## Either the ad link will go to redirect/ad-text.html and we create
+## the file redirect/ad-text.html, or else I figure out how to write
+## an html file with javascript that looks at an argument and does the
+## redirect for me.
+##
+## In this first draft, we do the former.
+
+2014-06-17	Buy this book	http://www.amazon.com/Snatched-Katie-Humburg-ebook/dp/B00JCB03J6/ref=sr_1_1?ie=UTF8&qid=1402702240&sr=8-1&keywords=humburg%2C+katie
+2014-06-18	Buy this book	http://www.amazon.com/Snatched-Katie-Humburg-ebook/dp/B00JCB03J6/ref=sr_1_1?ie=UTF8&qid=1402702240&sr=8-1&keywords=humburg%2C+katie
+2014-06-19	Buy this book	http://www.amazon.com/Snatched-Katie-Humburg-ebook/dp/B00JCB03J6/ref=sr_1_1?ie=UTF8&qid=1402702240&sr=8-1&keywords=humburg%2C+katie
