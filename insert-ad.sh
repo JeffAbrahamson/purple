@@ -8,7 +8,7 @@
 ## directory of www/.
 
 present_index() {
-    cp www/index-default.html www/index.html
+    cp templates/index-default.html www/index.html
 }
 
 present_cause() {
@@ -17,6 +17,10 @@ present_cause() {
     page=$(echo $cause | awk -F'|' '{print $2}')
     sed -e "s/Sponsored link:/Support purple causes/; s|advertise.html|causes/$page|; s/This is you/$label/;" \
 	< templates/index.html > www/index.html
+}
+
+offer_tshirt() {
+    cp templates/index-tshirt.html www/index.html
 }
 
 present_ad() {
@@ -36,6 +40,10 @@ main() {
     if present_ad; then
 	return
     fi
+#    if [ $(($RANDOM % 3)) = 0 ]; then
+#	offer_tshirt
+#	return
+#    fi
     if [ $(($RANDOM % 10)) = 0 ]; then
 	present_cause
 	return
