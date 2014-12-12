@@ -40,10 +40,10 @@ main() {
     if present_ad; then
 	return
     fi
-#    if [ $(($RANDOM % 3)) = 0 ]; then
-#	offer_tshirt
-#	return
-#    fi
+    if [ $(($RANDOM % 3)) = 0 ]; then
+	offer_tshirt
+	return
+    fi
     if [ $(($RANDOM % 10)) = 0 ]; then
 	present_cause
 	return
