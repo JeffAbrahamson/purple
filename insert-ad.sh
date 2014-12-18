@@ -7,6 +7,8 @@
 ## This script assumes it is being run from the immediate parent
 ## directory of www/.
 
+log_file=$HOME/index.log
+
 present_index() {
     cp templates/index-default.html www/index.html
 }
@@ -29,6 +31,7 @@ present_ad() {
     if [ "X$label" = X ]; then
 	return 1
     fi
+    echo $(date +%F) ad: "$label" >> $log_file
     redirect=$(echo $label | tr ' ' '-').html
     url=$(egrep ^$today ads.txt | awk -F'\t' '{print $3}')
     sed -e "s|advertise.html|redirect/$redirect|; s/This is you/$label/;" < templates/index.html > www/index.html
@@ -42,13 +45,16 @@ main() {
     fi
     if [ $(($RANDOM % 3)) = 0 ]; then
 	offer_tshirt
+	echo $(date +%F) t-shirt >> $log_file
 	return
     fi
-    if [ $(($RANDOM % 10)) = 0 ]; then
-	present_cause
-	return
-    fi
+#    if [ $(($RANDOM % 10)) = 0 ]; then
+#	present_cause
+#	echo $(date +%F) cause >> $log_file
+#	return
+#    fi
     present_index
+    echo $(date +%F) index >> $log_file
 }
 
 main
