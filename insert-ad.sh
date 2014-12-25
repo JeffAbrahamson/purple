@@ -43,7 +43,7 @@ main() {
     if present_ad; then
 	return
     fi
-    if [ $(($RANDOM % 3)) = 0 ]; then
+    if [ $(($RANDOM % 10)) = 0 ]; then
 	offer_tshirt
 	echo $(date +%F) t-shirt >> $log_file
 	return
