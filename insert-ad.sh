@@ -34,8 +34,13 @@ present_ad() {
     echo $(date +%F) ad: "$label" >> $log_file
     redirect=$(echo $label | tr ' ' '-').html
     url=$(egrep ^$today ads.txt | awk -F'\t' '{print $3}')
-    sed -e "s|advertise.html|redirect/$redirect|; s/This is you/$label/;" < templates/index.html > www/index.html
-    sed -e "s|go-here.html|$url|;" < templates/redirect.html > www/redirect/$redirect
+    if [ -r "www/imageads/$label" ]; then
+	sed -e "s|advertise.html|redirect/$redirect|; s/this-is-you.png/$label/;" < templates/index-imagead.html > www/index.html
+	sed -e "s|go-here.html|$url|;" < templates/redirect.html > www/redirect/$redirect
+    else
+	sed -e "s|advertise.html|redirect/$redirect|; s/This is you/$label/;" < templates/index-textad.html > www/index.html
+	sed -e "s|go-here.html|$url|;" < templates/redirect.html > www/redirect/$redirect
+    fi
     return 0
 }
 

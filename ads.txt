@@ -3,7 +3,7 @@
 #   Lines are tab-separated text.
 #   Fields are as follows:
 #     - date as yyyy-mm-dd
-#     - ad text
+#     - ad text or image filename
 #     - ad URL
 
 ## Either the ad link will go to redirect/ad-text.html and we create
