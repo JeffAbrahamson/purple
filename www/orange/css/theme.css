@@ -1,0 +1,45 @@
+body {
+  padding-top: 70px;
+  padding-bottom: 30px;
+/* background-color: #ff8c00 */
+  background-color: #ffddbb
+}
+
+.theme-dropdown .dropdown-menu {
+  position: static;
+  display: block;
+  margin-bottom: 20px;
+}
+
+.theme-showcase > p > .btn {
+  margin: 5px 0;
+}
+
+.theme-showcase .navbar .container {
+  width: auto;
+}
+
+h1 {
+  /* T R B L */
+  margin: 15px 5px 10px 10px;
+}
+
+h2 {
+  /* T R B L */
+  margin: 15px 5px 10px 15px;
+}
+
+p {
+  /* T R B L */
+  margin: 15px 5px 10px 20px;
+}
+
+ul.ok-check {
+  margin-left: 60px;
+}
+
+ul:before.ok-check {
+  content: 'fa-check'; /* FontAwesome char code inside the '' */
+  font-family: FontAwesome;
+  display: inline-block;
+}
