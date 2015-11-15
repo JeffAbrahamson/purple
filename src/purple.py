@@ -3,6 +3,7 @@
 """A program for compositing purple.com.
 """
 
+import argparse
 import dateutil
 import jinja2
 from PIL import Image
@@ -105,6 +106,15 @@ class BlogCompositor:
     A compositor to handle blog pages.  The key feature here is that
     blogs have a publication_date (before which no page should be
     emitted) and they link from one to the next.
+
+    The expected keys are these:
+
+      :publication_date:    (YYYY-MM-DD format)
+      :image:
+      :title:
+      :keywords:    (CSV)
+      :markdown:    (if body is in markdown)
+      :html:        (if body is in html)
 
     In addition (future improvement), emit keyword pages based on the
     CSV values of :keywords: fields.  Pages linked from the keyword
@@ -231,5 +241,18 @@ class Site:
             compositor.write(production_path)
 
 if __name__ == '__main__':
-    pass
+    parser = argparse.ArgumentParser("Build the site.")
+    parser.add_argument('--src', dest='source_path', type=str,
+                        help='Path in which to find page specification files')
+    parser.add_argument('--dst', dest='destination_path', type=str,
+                        help='Path in which to write web site')
+    parser.add_argument('--config', dest='config_path', type=str,
+                        help='Path of site configuration file')
+    args = parser.parse_args()
+
+    site = Site(args.config_path, args.source_path)
+    for filename in ['walk file tree at args.source_path']:
+        # TODO(jeff@purple.com):  Fill that in.
+        site.act_on_file(filename)
+    site.write_all(args.destination_path)
 
