@@ -3,8 +3,9 @@
 """A program for compositing purple.com.
 """
 
+from __future__ import print_function
 import argparse
-import dateutil
+import dateutil.parser
 import jinja2
 import os
 from PIL import Image
@@ -27,7 +28,7 @@ def read_page_spec(filename):
     pattern = re.compile(r'^:\w+:$')
     with open(filename, 'r') as page_spec_fp:
         for line in page_spec_fp.readlines():
-            line.rstrip()
+            line=line.rstrip()
             if re.match(pattern, line):
                 if key is not None:
                     # This is not our first key, so output the (key,
@@ -53,7 +54,7 @@ def read_page_spec(filename):
 #     write() should be the last interaction the compositor has with
 #     the world.
 
-class StaticCompositor:
+class StaticCompositor(object):
     """A singleton page compositor.
 
     A compositor to handle static pages that have no automated
@@ -66,34 +67,33 @@ class StaticCompositor:
     # A mapping of filenames to rendered pages.
     pages = {}
 
-    def __init(self, dryrun):
+    def __init__(self, dryrun):
         """Set up.  This is my first contact with the world.
         """
         self.dryrun = dryrun
 
-    def composite(self, filename, template, source_path):
+    def composite(self, filename, template):
         """Prepare a page.
 
         Given a path (filename) and a template, prepare a page.
         """
         if self.dryrun:
-            print('StaticCompositor: ({fn}, {sp})'.format(
-                fn=filename, sp=source_path))
+            print('StaticCompositor: ({fn})'.format(fn=filename))
             return
-        value_map = read_page_spec(source_path + filename)
+        value_map = read_page_spec(filename)
         page = template.render(value_map)
         self.pages[filename] = page
 
-    def write(self, production_path):
+    def write(self):
         """Write my state.  This is my last contact with the world.
         """
         if self.dryrun:
             return
         for filename, page in self.pages.items():
-            with open(os.path.join(production_path, filename), 'w') as page_fp:
+            with open(filename, 'w') as page_fp:
                 page_fp.write(page)
 
-class ImageCompositor:
+class ImageCompositor(object):
     """An image compositor.
 
     Just copy images from source to destination.  Eventually, maybe
@@ -106,23 +106,21 @@ class ImageCompositor:
     # Map image filenames to image full filenames.
     images = {}
 
-    def __init(self, dryrun):
+    def __init__(self, dryrun):
         """Set up.  This is my first contact with the world.
         """
         self.dryrun = dryrun
 
-    def composite(self, filename, template, source_path):
+    def composite(self, filename, _):
         """Note an image to (maybe) copy.
         """
         # TODO(jeff@purple.com): How do I specify multiple resolutions?
         if self.dryrun:
-            print('ImageCompositor: ({fn}, {sp})'.format(
-                fn=filename, sp=source_path))
+            print('ImageCompositor: ({fn})'.format(fn=filename))
             return
-        template = None         # Unused.
-        self.images[filename] = source_path + filename
+        self.images[filename] = filename
 
-    def write(self, production_path):
+    def write(self):
         """Write my state.  This is my last contact with the world.
         """
         if self.dryrun:
@@ -130,10 +128,12 @@ class ImageCompositor:
         for filename, source_filename in self.images.items():
             # TODO(jeff@purple.com): Check mod dates (if more recent,
             # do nothing).
-            Image.open(source_filename).save(
-                os.path.join(production_path, filename))
+            # TODO(jeff@purple.com): Write multiple sizes.
+            print('Image.write: source="{sf}", file="{fn}"'.format(
+                sf=source_filename, fn=filename))
+            Image.open(source_filename).save(filename)
 
-class BlogCompositor:
+class BlogCompositor(object):
     """A singleton page compositor.
 
     A compositor to handle blog pages.  The key feature here is that
@@ -171,21 +171,20 @@ class BlogCompositor:
     # Keep track of all keywords encountered.
     keywords = set('')
 
-    def __init(self, dryrun):
+    def __init__(self, dryrun):
         """Set up.  This is my first contact with the world.
         """
         self.dryrun = dryrun
 
-    def composite(self, filename, template, source_path):
+    def composite(self, filename, template):
         """Prepare a page.
 
         Given a path (filename) and a template, prepare to prepare a page.
         """
         if self.dryrun:
-            print('BlogCompositor: ({fn}, {sp})'.format(
-                fn=filename, sp=source_path))
+            print('BlogCompositor: ({fn})'.format(fn=filename))
             return
-        value_map = read_page_spec(source_path + filename)
+        value_map = read_page_spec(filename)
         if 'publication_date' not in value_map:
             print('{fn} has no publication date, ignored.'.format(fn=filename))
             return
@@ -207,7 +206,7 @@ class BlogCompositor:
             return
         # TODO(jeff@purple.com):  IMPLEMENT THIS.
 
-class Site:
+class Site(object):
     """Encapsulate a web site's specification.
 
     """
@@ -229,13 +228,12 @@ class Site:
     # Where to find page specification files.
     source_path = ''
 
-    def __init__(self, site_config_filename, source_path, dryrun):
+    def __init__(self, site_config_path, source_path, dryrun):
         """Read and parse the site config file.
 
         The config file format is a sequence of lines with three white
-        space separated fields: a pattern to match at beginning of
-        path name, a template filename, and a compositor (a valid
-        class name).
+        space separated fields: a pattern to match against path names,
+        a template filename, and a compositor (a valid class name).
 
         Empty lines and lines beginning with '#' are ignored.
 
@@ -248,16 +246,26 @@ class Site:
 
         """
         self.source_path = source_path + '/'
-        with open(site_config_filename, 'r') as filename_fp:
+        self.dryrun = dryrun
+        if self.dryrun:
+            print('Dry run.')
+        with open(site_config_path + '/config', 'r') as filename_fp:
             for line in filename_fp.readlines():
                 if line[0] != '#' and len(line) > 0:
                     regex_string, template_string, compositor_string \
                         = line.split()
+                    if dryrun:
+                        found='Found: re="{re}", template="{template}", ' + \
+                            'comp="{comp}"'
+                        print(found.format(
+                            re=regex_string, template=template_string,
+                            comp=compositor_string))
                     regex = re.compile(regex_string)
                     compositor = globals()[compositor_string](dryrun)
                     self.actions[regex] = (template_string, compositor)
                     if template_string not in self.templates:
-                        with open(template_string, 'r') as template_fp:
+                        with open(site_config_path + '/' + template_string,
+                                  'r') as template_fp:
                             self.templates[template_string] = jinja2.Template(
                                 template_fp.read())
                     self.regexes.append(regex)
@@ -271,18 +279,22 @@ class Site:
         """Do whatever we need to do with the path filename.
         """
         for regex in self.regexes:
+            print('  Testing "{fn}" against "{re}"'.format(
+                fn=filename, re=regex))
             if regex.match(filename):
                 template, compositor = self.actions.get(regex, (None, None))
                 if compositor is None:
                     print('Missing compositor for {fn}'.format(fn=filename))
+                    return
                 else:
                     template_contents = self.templates.get(template, None)
                     if template_contents is None:
                         print('No template available: {template}'.format(
                             template=template))
+                        return
                     else:
-                        compositor(filename, template_contents,
-                                   self.source_path)
+                        compositor.composite(filename, template_contents)
+                        return
         print('No path match for {fn}'.format(fn=filename))
 
     def write_all(self, production_path):
@@ -302,18 +314,23 @@ class Site:
             else:
                 os.mkdir(directory, mode=0o755)
         for dummy_template, compositor in self.actions.values():
-            compositor.write(production_path)
+            compositor.write()
 
 def main():
     """Do what we do."""
-    parser = argparse.ArgumentParser("Build the site.")
+    parser = argparse.ArgumentParser(
+        description='Build the site.')
     parser.add_argument('--src', dest='source_path', type=str,
                         help='Path in which to find page specification files')
     parser.add_argument('--dst', dest='destination_path', type=str,
                         help='Path in which to write web site')
     parser.add_argument('--config', dest='config_path', type=str,
-                        help='Path of site configuration file')
-    parser.add_argument('--dryrun', dest='dryrun', type=bool,
+                        help='Path of site configuration and template '
+                        + 'directory.  The configuration filename should '
+                        + 'be "config".  The template '
+                        + 'files are named by the config file.')
+    parser.add_argument('--dryrun', dest='dryrun',
+                        action='store_true',
                         help='Dry run, only indicate disposition of files.')
     args = parser.parse_args()
 
@@ -322,11 +339,14 @@ def main():
     # at destination_path.  In addition, I want to make sure that I
     # never match a pattern rule on an artifact of the full source
     # path name.
+    initial_path = os.getcwd()  # Probably could simplify with unipath.
     os.chdir(args.source_path)
     for dir_name, dummy_subdir_list, file_list in os.walk('.'):
         site.act_on_dir(dir_name)
         for filename in file_list:
+            print('tree walk: found "{fn}"'.format(fn=filename))
             site.act_on_file(os.path.join(dir_name, filename))
+    os.chdir(initial_path)
     site.write_all(args.destination_path)
 
 if __name__ == '__main__':

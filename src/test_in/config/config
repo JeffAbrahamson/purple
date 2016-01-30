@@ -1,0 +1,4 @@
+# This line will be ignored.
+^.*blog.*html$ blog.html	BlogCompositor
+^.*html$  page.html	StaticCompositor
+#jpg$   	ImageCompositor
