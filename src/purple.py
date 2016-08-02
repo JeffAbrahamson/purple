@@ -28,7 +28,7 @@ def read_page_spec(filename):
     pattern = re.compile(r'^:\w+:$')
     with open(filename, 'r') as page_spec_fp:
         for line in page_spec_fp.readlines():
-            line=line.rstrip()
+            line = line.rstrip()
             if re.match(pattern, line):
                 if key is not None:
                     # This is not our first key, so output the (key,
@@ -53,6 +53,77 @@ def read_page_spec(filename):
 #   * A function write(), which writes out the stored pages.  Calling
 #     write() should be the last interaction the compositor has with
 #     the world.
+
+class NullCompositor(object):
+    """A compositor that does nothing.
+    """
+    def __init__(self, dryrun):
+        """Nothing to do."""
+        pass
+
+    def composite(self, filename, template):
+        """Nothing to do."""
+        pass
+
+    def write(self):
+        """Nothing to do."""
+        pass
+
+class CopyCompositor(object):
+    """A compositor that just copies input to output.
+    """
+    # If True, write() becomes a no-op.
+    dryrun = False
+
+    # Map filenames to modification time.
+    files = {}
+
+    def __init__(self, dryrun):
+        """Set up.  This is my first contact with the world.
+        """
+        self.dryrun = dryrun
+        self.source_dir = os.getcwd()
+
+    def composite(self, filename, _):
+        """Note a file to (maybe) copy.
+        """
+        if self.dryrun:
+            print('CopyCompositor: ({fn})'.format(fn=filename))
+            return
+        try:
+            src_time = os.stat(filename).st_mtime
+        except OSError as error:
+            print("Can't stat source file {fn}: {err}".format(
+                fn=source_filename,
+                err=str(error)))
+        self.files[filename] = src_time
+
+    def write(self):
+        """Write my state.  This is my last contact with the world.
+        """
+        if self.dryrun:
+            return
+        for filename, src_time in self.files.items():
+            try:
+                dst_time = os.stat(filename).st_mtime
+            except OSError as error:
+                # It's reasonable that it doesn't exist, but trigger an update.
+                dst_time = 0
+            try:
+                src_time = self.files[filename]
+            except KeyError:
+                # This shouldn't happen.
+                print('Missing source file and mtime: ' + filename)
+                return
+            needs_update = (dst_time < src_time)
+            if needs_update:
+                # TODO(jeff@purple.com): Write multiple sizes.
+                source_filename = self.source_dir + '/' + filename
+                print('Copy.write: source="{sf}", file="{fn}"'.format(
+                    sf=source_filename, fn=filename))
+                with open(source_filename, 'rb') as fp_source:
+                    with open(filename, 'wb') as fp_dest:
+                        fp_dest.write(fp_source.read())
 
 class StaticCompositor(object):
     """A singleton page compositor.
@@ -103,13 +174,14 @@ class ImageCompositor(object):
     # If True, write() becomes a no-op.
     dryrun = False
 
-    # Map image filenames to image full filenames.
+    # Map image filenames to image modification time.
     images = {}
 
     def __init__(self, dryrun):
         """Set up.  This is my first contact with the world.
         """
         self.dryrun = dryrun
+        self.source_dir = os.getcwd()
 
     def composite(self, filename, _):
         """Note an image to (maybe) copy.
@@ -118,20 +190,38 @@ class ImageCompositor(object):
         if self.dryrun:
             print('ImageCompositor: ({fn})'.format(fn=filename))
             return
-        self.images[filename] = filename
+        try:
+            src_time = os.stat(filename).st_mtime
+        except OSError as error:
+            print("Can't stat source file {fn}: {err}".format(
+                fn=source_filename,
+                err=str(error)))
+        self.images[filename] = src_time
 
     def write(self):
         """Write my state.  This is my last contact with the world.
         """
         if self.dryrun:
             return
-        for filename, source_filename in self.images.items():
-            # TODO(jeff@purple.com): Check mod dates (if more recent,
-            # do nothing).
-            # TODO(jeff@purple.com): Write multiple sizes.
-            print('Image.write: source="{sf}", file="{fn}"'.format(
-                sf=source_filename, fn=filename))
-            Image.open(source_filename).save(filename)
+        for filename, src_time in self.images.items():
+            try:
+                dst_time = os.stat(filename).st_mtime
+            except OSError as error:
+                # It's reasonable that it doesn't exist, but trigger an update.
+                dst_time = 0
+            try:
+                src_time = self.images[filename]
+            except KeyError:
+                # This shouldn't happen.
+                print('Missing source file and mtime: ' + filename)
+                return
+            needs_update = (dst_time < src_time)
+            if needs_update:
+                # TODO(jeff@purple.com): Write multiple sizes.
+                source_filename = self.source_dir + '/' + filename
+                print('Image.write: source="{sf}", file="{fn}"'.format(
+                    sf=source_filename, fn=filename))
+                Image.open(source_filename).save(filename)
 
 class BlogCompositor(object):
     """A singleton page compositor.
@@ -165,7 +255,9 @@ class BlogCompositor(object):
     # computed at the end once the entire sequence is known.
     pre_pages = {}
 
-    # Map slugs to the filename keys in pre_pages.
+    # Slugs for us are string representations of publication dates.
+    # Here we'll map all the slugs we've seen to the filenames that
+    # should become visible on that date.
     slugs = {}
 
     # Keep track of all keywords encountered.
@@ -191,16 +283,45 @@ class BlogCompositor(object):
         # Publication date should be of form YYYY-MM-DD, but, in the
         # end, anything understandable by dateutil.parser().
         publication_date = dateutil.parser.parse(value_map['publication_date'])
-        value_map['slug'] = '{y}-{m:02d}-{d:02d}'.format(
+        slug = '{y}-{m:02d}-{d:02d}'.format(
             y=publication_date.year,
             m=publication_date.month,
             d=publication_date.day)
-        self.slugs[value_map['slug']] = filename
+        value_map['slug'] = slug
+        if slug in self.slugs:
+            self.slugs[slug].add([filename])
+        else:
+            self.slugs[slug] = set([filename])
         self.keywords.update(value_map.get('keywords', '').split(','))
         self.pre_pages[filename] = (template, value_map)
 
     def write(self):
         """Write my state.  This is my last contact with the world.
+        """
+        if self.dryrun:
+            return
+    def write(self):
+        """Write my state.  This is my last contact with the world.
+
+        Here's the plan:
+
+        We have pre_pages, which is a dict of (template, dictionary) pairs.
+        The entries are missing the keys next_page and previous_page.
+
+        We have a set of keywords.  Each keyword is essentially a
+        projection map of the set of pages.  If the viewer clicks a
+        link associated with a keyword, he should find himself viewing
+        the same page but with that keyword selected, and so in the
+        context of that projection.  A projection amounts to a story
+        line or sequence of pages.  A special keyword, "all", is
+        always implied.
+
+        We'll write pages to '{keyword}/{filename}'.  The
+        next/previous buttons will take us to the next or previous
+        file in the directory {keyword} (and are no-ops if in the
+        respective terminal position).  Clicking a keyword link will
+        take us to the same filename in directory {keyword}.
+
         """
         if self.dryrun:
             return
@@ -255,8 +376,8 @@ class Site(object):
                     regex_string, template_string, compositor_string \
                         = line.split()
                     if dryrun:
-                        found='Found: re="{re}", template="{template}", ' + \
-                            'comp="{comp}"'
+                        found = 'Found: re="{re}", template="{template}", ' + \
+                                'comp="{comp}"'
                         print(found.format(
                             re=regex_string, template=template_string,
                             comp=compositor_string))
@@ -279,9 +400,9 @@ class Site(object):
         """Do whatever we need to do with the path filename.
         """
         for regex in self.regexes:
-            print('  Testing "{fn}" against "{re}"'.format(
-                fn=filename, re=regex))
             if regex.match(filename):
+                print('  Matched: {re:23}  {fn}'.format(
+                    fn=filename, re=str(regex)))
                 template, compositor = self.actions.get(regex, (None, None))
                 if compositor is None:
                     print('Missing compositor for {fn}'.format(fn=filename))
@@ -335,6 +456,7 @@ def main():
     args = parser.parse_args()
 
     site = Site(args.config_path, args.source_path, args.dryrun)
+
     # I want to get relative paths to make it easier on file creation
     # at destination_path.  In addition, I want to make sure that I
     # never match a pattern rule on an artifact of the full source
@@ -344,7 +466,7 @@ def main():
     for dir_name, dummy_subdir_list, file_list in os.walk('.'):
         site.act_on_dir(dir_name)
         for filename in file_list:
-            print('tree walk: found "{fn}"'.format(fn=filename))
+            # print('tree walk: found "{fn}"'.format(fn=filename))
             site.act_on_file(os.path.join(dir_name, filename))
     os.chdir(initial_path)
     site.write_all(args.destination_path)

@@ -1,0 +1,13 @@
+# This line will be ignored.
+#
+# Format:   regex  template  compositor-name
+#
+^blog.*html$		blog.html	BlogCompositor
+^.*html$  		page.html	StaticCompositor
+^.*~			empty		NullCompositor
+# The image template ("empty") is just an empty file.  We don't
+# actually use it, but it's saner to have it than to special case the
+# config reading code.
+^.*jpg$   		empty		ImageCompositor
+^.*png$   		empty		ImageCompositor
+^.*xcf$			empty		CopyCompositor
