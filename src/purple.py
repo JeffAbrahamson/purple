@@ -401,9 +401,9 @@ class Site(object):
         """
         for regex in self.regexes:
             if regex.match(filename):
-                print('  Matched: {re:23}  {fn}'.format(
-                    fn=filename, re=str(regex)))
                 template, compositor = self.actions.get(regex, (None, None))
+                print('  Matched: {re:35}  {template:13}  {fn}'.format(
+                    fn=filename, re=str(regex), template=template))
                 if compositor is None:
                     print('Missing compositor for {fn}'.format(fn=filename))
                     return

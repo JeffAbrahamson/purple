@@ -1,7 +1,15 @@
-# This line will be ignored.
+# Lines beginning with '#' are comments.
 #
 # Format:   regex  template  compositor-name
 #
+# Patterns are attempted in order, the first matching pattern is used.
+#
+# One-off pages.
+^./jeff/thé$		redirect.html	StaticCompositor
+^./jeff/thé.html$	redirect.html	StaticCompositor
+^./index.html$		redirect.html	StaticCompositor
+#
+# More generic pages.
 ^blog.*html$		blog.html	BlogCompositor
 ^.*html$  		page.html	StaticCompositor
 ^.*~			empty		NullCompositor
