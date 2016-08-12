@@ -1,1 +1,1 @@
-src/purple.py --src in --dst out --config config
+src/purple.py --src in --dst www --config config
