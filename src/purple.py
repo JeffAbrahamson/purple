@@ -44,7 +44,7 @@ def read_page_spec(filename):
 
 # Compositors have three public methods:
 #
-#   * A function init() taking no arguments.
+#   * A function init() taking one argument, a boolean (dryrun).
 #
 #   * A function composite(), which composites a page (to be stored
 #     pending a future call to write()) given a content filename and
@@ -82,11 +82,13 @@ class CopyCompositor(object):
         """Set up.  This is my first contact with the world.
         """
         self.dryrun = dryrun
-        self.source_dir = os.getcwd()
+        self.source_dir = ''
 
     def composite(self, filename, _):
         """Note a file to (maybe) copy.
         """
+        if '' == self.source_dir:
+            self.source_dir = os.getcwd()
         if self.dryrun:
             print('CopyCompositor: ({fn})'.format(fn=filename))
             return
@@ -181,11 +183,13 @@ class ImageCompositor(object):
         """Set up.  This is my first contact with the world.
         """
         self.dryrun = dryrun
-        self.source_dir = os.getcwd()
+        self.source_dir = ''
 
     def composite(self, filename, _):
         """Note an image to (maybe) copy.
         """
+        if '' == self.source_dir:
+            self.source_dir = os.getcwd()
         # TODO(jeff@purple.com): How do I specify multiple resolutions?
         if self.dryrun:
             print('ImageCompositor: ({fn})'.format(fn=filename))
@@ -382,6 +386,7 @@ class Site(object):
                             re=regex_string, template=template_string,
                             comp=compositor_string))
                     regex = re.compile(regex_string)
+
                     compositor = globals()[compositor_string](dryrun)
                     self.actions[regex] = (template_string, compositor)
                     if template_string not in self.templates:

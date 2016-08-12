@@ -6,8 +6,6 @@
 #
 # One-off pages.
 ^./jeff/thé$		redirect.html	StaticCompositor
-^./jeff/thé.html$	redirect.html	StaticCompositor
-^./index.html$		redirect.html	StaticCompositor
 #
 # More generic pages.
 ^blog.*html$		blog.html	BlogCompositor
@@ -19,3 +17,6 @@
 ^.*jpg$   		empty		ImageCompositor
 ^.*png$   		empty		ImageCompositor
 ^.*xcf$			empty		CopyCompositor
+^.*js$			empty		CopyCompositor
+^.*css$			empty		CopyCompositor
+^.*pdf$			empty		CopyCompositor
