@@ -15,6 +15,7 @@ if [ -e test_out ]; then
 	echo The file test_out is not a directory.  Aborting.
 	exit 1
     fi
+    echo Start with a clean slate: removing test_out.
     rm -rf test_out
 fi
 mkdir test_out
@@ -24,5 +25,7 @@ diff --recursive test_out test_out_golden
 status=$?
 if [ $status != 0 ]; then
     echo "== Failed =="
+else
+    echo "== Success =="
 fi
 exit $status

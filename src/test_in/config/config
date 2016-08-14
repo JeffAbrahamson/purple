@@ -1,4 +1,22 @@
-# This line will be ignored.
-^.*blog.*html$ blog.html	BlogCompositor
-^.*html$  page.html	StaticCompositor
-#jpg$   	ImageCompositor
+# Lines beginning with '#' are comments.
+#
+# Format:   regex  template  compositor-name
+#
+# Patterns are attempted in order, the first matching pattern is used.
+#
+# One-off pages.
+^./in/jeff/thé$		redirect.html	StaticCompositor
+#
+# More generic pages.
+^blog.*html$		blog.html	BlogCompositor
+^.*html$  		page.html	StaticCompositor
+^.*~			empty		NullCompositor
+# The image template ("empty") is just an empty file.  We don't
+# actually use it, but it's saner to have it than to special case the
+# config reading code.
+^.*jpg$   		empty		ImageCompositor
+^.*png$   		empty		ImageCompositor
+^.*xcf$			empty		CopyCompositor
+^.*js$			empty		CopyCompositor
+^.*css$			empty		CopyCompositor
+^.*pdf$			empty		CopyCompositor

@@ -57,7 +57,7 @@ def read_page_spec(filename):
 class NullCompositor(object):
     """A compositor that does nothing.
     """
-    def __init__(self, dryrun):
+    def __init__(self, dryrun, verbose):
         """Nothing to do."""
         pass
 
@@ -78,10 +78,11 @@ class CopyCompositor(object):
     # Map filenames to modification time.
     files = {}
 
-    def __init__(self, dryrun):
+    def __init__(self, dryrun, verbose):
         """Set up.  This is my first contact with the world.
         """
         self.dryrun = dryrun
+        self.verbose = verbose
         self.source_dir = ''
 
     def composite(self, filename, _):
@@ -140,10 +141,11 @@ class StaticCompositor(object):
     # A mapping of filenames to rendered pages.
     pages = {}
 
-    def __init__(self, dryrun):
+    def __init__(self, dryrun, verbose):
         """Set up.  This is my first contact with the world.
         """
         self.dryrun = dryrun
+        self.verbose = verbose
 
     def composite(self, filename, template):
         """Prepare a page.
@@ -157,6 +159,7 @@ class StaticCompositor(object):
         page = template.render(value_map)
         self.pages[filename] = page
 
+    ## TODO: This should stat and check as the others do.  Then print on write.
     def write(self):
         """Write my state.  This is my last contact with the world.
         """
@@ -179,11 +182,12 @@ class ImageCompositor(object):
     # Map image filenames to image modification time.
     images = {}
 
-    def __init__(self, dryrun):
+    def __init__(self, dryrun, verbose):
         """Set up.  This is my first contact with the world.
         """
         self.dryrun = dryrun
         self.source_dir = ''
+        self.verbose = verbose
 
     def composite(self, filename, _):
         """Note an image to (maybe) copy.
@@ -267,10 +271,11 @@ class BlogCompositor(object):
     # Keep track of all keywords encountered.
     keywords = set('')
 
-    def __init__(self, dryrun):
+    def __init__(self, dryrun, verbose):
         """Set up.  This is my first contact with the world.
         """
         self.dryrun = dryrun
+        self.verbose = verbose
 
     def composite(self, filename, template):
         """Prepare a page.
@@ -353,7 +358,7 @@ class Site(object):
     # Where to find page specification files.
     source_path = ''
 
-    def __init__(self, site_config_path, source_path, dryrun):
+    def __init__(self, site_config_path, source_path, dryrun, verbose):
         """Read and parse the site config file.
 
         The config file format is a sequence of lines with three white
@@ -372,6 +377,7 @@ class Site(object):
         """
         self.source_path = source_path + '/'
         self.dryrun = dryrun
+        self.verbose = verbose
         if self.dryrun:
             print('Dry run.')
         with open(site_config_path + '/config', 'r') as filename_fp:
@@ -387,7 +393,7 @@ class Site(object):
                             comp=compositor_string))
                     regex = re.compile(regex_string)
 
-                    compositor = globals()[compositor_string](dryrun)
+                    compositor = globals()[compositor_string](dryrun, verbose)
                     self.actions[regex] = (template_string, compositor)
                     if template_string not in self.templates:
                         with open(site_config_path + '/' + template_string,
@@ -407,8 +413,9 @@ class Site(object):
         for regex in self.regexes:
             if regex.match(filename):
                 template, compositor = self.actions.get(regex, (None, None))
-                print('  Matched: {re:35}  {template:13}  {fn}'.format(
-                    fn=filename, re=str(regex), template=template))
+                if self.verbose:
+                    print('  Matched: {re:35}  {template:13}  {fn}'.format(
+                        fn=filename, re=str(regex), template=template))
                 if compositor is None:
                     print('Missing compositor for {fn}'.format(fn=filename))
                     return
@@ -458,9 +465,12 @@ def main():
     parser.add_argument('--dryrun', dest='dryrun',
                         action='store_true',
                         help='Dry run, only indicate disposition of files.')
+    parser.add_argument('-v', '--verbose', dest='verbose',
+                        action='store_true',
+                        help='Be terribly informative of what happens')
     args = parser.parse_args()
 
-    site = Site(args.config_path, args.source_path, args.dryrun)
+    site = Site(args.config_path, args.source_path, args.dryrun, args.verbose)
 
     # I want to get relative paths to make it easier on file creation
     # at destination_path.  In addition, I want to make sure that I

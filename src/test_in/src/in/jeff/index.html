@@ -1,0 +1,16 @@
+:title:
+Jeff Abrahamson, language check
+:javascript_inline:
+var lang = ((navigator.browserLanguage) ? 
+              navigator.browserLanguage : 
+              (navigator.language) ? navigator.language :
+	      navigator.userLanguage);
+if(lang.substring(2,0) == "fr") {
+document.write("<META HTTP-EQUIV=\"Refresh\" CONTENT=\"0; URL=index_fr.html\">");
+} else {
+document.write("<META HTTP-EQUIV=\"Refresh\" CONTENT=\"0; URL=index_en.html\">");
+}
+:body:
+<p>
+This should redirect, if not click <a href="index_en.html">here</a>.
+<p>Cette page doit vous transférer <a href="index_fr.html">ici</a>.

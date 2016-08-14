@@ -1,0 +1,17 @@
+:body:
+:title:
+Talk feedback, language check
+:javascript_inline:
+var lang = ((navigator.browserLanguage) ? 
+              navigator.browserLanguage : 
+              (navigator.language) ? navigator.language :
+	      navigator.userLanguage);
+if(lang.substring(2,0) == "fr") {
+document.write("<META HTTP-EQUIV=\"Refresh\" CONTENT=\"0; URL=https://docs.google.com/forms/d/e/1FAIpQLSdE4ciGy6tp-jk-9JA8KuLkD30TjYHdfT-BU7U4xv3F274Bnw/viewform\">");
+} else {
+document.write("<META HTTP-EQUIV=\"Refresh\" CONTENT=\"0; URL=https://docs.google.com/forms/d/e/1FAIpQLSfaSLpCpT43sPQbPCu2hodP_yYG-Tkoc9erlmFwNsBrj85XEQ/viewform\">");
+}
+:body:
+<p>This should redirect, if not click <a href="https://docs.google.com/forms/d/e/1FAIpQLSfaSLpCpT43sPQbPCu2hodP_yYG-Tkoc9erlmFwNsBrj85XEQ/viewform">here</a>.</p>
+
+<p>Cette page doit vous transférer <a href="https://docs.google.com/forms/d/e/1FAIpQLSdE4ciGy6tp-jk-9JA8KuLkD30TjYHdfT-BU7U4xv3F274Bnw/viewform">ici</a>.</p>
