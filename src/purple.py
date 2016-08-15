@@ -72,61 +72,33 @@ class NullCompositor(object):
 class CopyCompositor(object):
     """A compositor that just copies input to output.
     """
-    # If True, write() becomes a no-op.
-    dryrun = False
-
-    # Map filenames to modification time.
-    files = {}
-
     def __init__(self, dryrun, verbose):
         """Set up.  This is my first contact with the world.
         """
+        # If verbose == True, write() becomes a no-op.
         self.dryrun = dryrun
         self.verbose = verbose
-        self.source_dir = ''
+        self.timestamp_helper = TimestampCompositorHelper(dryrun, verbose)
 
     def composite(self, filename, _):
         """Note a file to (maybe) copy.
         """
-        if '' == self.source_dir:
-            self.source_dir = os.getcwd()
         if self.dryrun:
             print('CopyCompositor: ({fn})'.format(fn=filename))
             return
-        try:
-            src_time = os.stat(filename).st_mtime
-        except OSError as error:
-            print("Can't stat source file {fn}: {err}".format(
-                fn=source_filename,
-                err=str(error)))
-        self.files[filename] = src_time
+        self.timestamp_helper.composite(filename)
 
     def write(self):
         """Write my state.  This is my last contact with the world.
         """
         if self.dryrun:
             return
-        for filename, src_time in self.files.items():
-            try:
-                dst_time = os.stat(filename).st_mtime
-            except OSError as error:
-                # It's reasonable that it doesn't exist, but trigger an update.
-                dst_time = 0
-            try:
-                src_time = self.files[filename]
-            except KeyError:
-                # This shouldn't happen.
-                print('Missing source file and mtime: ' + filename)
-                return
-            needs_update = (dst_time < src_time)
-            if needs_update:
-                # TODO(jeff@purple.com): Write multiple sizes.
-                source_filename = self.source_dir + '/' + filename
-                print('Copy.write: source="{sf}", file="{fn}"'.format(
-                    sf=source_filename, fn=filename))
-                with open(source_filename, 'rb') as fp_source:
-                    with open(filename, 'wb') as fp_dest:
-                        fp_dest.write(fp_source.read())
+        def copy_file(dest_filename, source_filename):
+            """Copy source_file to dest_file."""
+            with open(source_filename, 'rb') as fp_source:
+                with open(dest_filename, 'wb') as fp_dest:
+                    fp_dest.write(fp_source.read())
+        self.timestamp_helper.write(copy_file)
 
 class StaticCompositor(object):
     """A singleton page compositor.
@@ -135,17 +107,15 @@ class StaticCompositor(object):
     relationship between each other.
 
     """
-    # If True, write() becomes a no-op.
-    dryrun = False
-
-    # A mapping of filenames to rendered pages.
-    pages = {}
-
     def __init__(self, dryrun, verbose):
         """Set up.  This is my first contact with the world.
         """
         self.dryrun = dryrun
         self.verbose = verbose
+        self.source_dir = ''
+        self.timestamp_helper = TimestampCompositorHelper(dryrun, verbose)
+        # A mapping of filenames to templates.
+        self.pages = {}
 
     def composite(self, filename, template):
         """Prepare a page.
@@ -155,19 +125,28 @@ class StaticCompositor(object):
         if self.dryrun:
             print('StaticCompositor: ({fn})'.format(fn=filename))
             return
-        value_map = read_page_spec(filename)
-        page = template.render(value_map)
-        self.pages[filename] = page
+        if '' == self.source_dir:
+            self.source_dir = os.getcwd()
+        self.pages[self.source_dir + '/' + filename] = template
+        self.timestamp_helper.composite(filename)
 
-    ## TODO: This should stat and check as the others do.  Then print on write.
     def write(self):
         """Write my state.  This is my last contact with the world.
         """
         if self.dryrun:
             return
-        for filename, page in self.pages.items():
-            with open(filename, 'w') as page_fp:
+        def static_render(dest_filename, source_filename):
+            """Render source to destination.
+
+            The source filename points to a spec file.
+            The desitination filename points to the html file we'll write.
+            """
+            value_map = read_page_spec(source_filename)
+            template = self.pages[source_filename]
+            page = template.render(value_map)
+            with open(dest_filename, 'w') as page_fp:
                 page_fp.write(page)
+        self.timestamp_helper.write(static_render)
 
 class ImageCompositor(object):
     """An image compositor.
@@ -188,48 +167,26 @@ class ImageCompositor(object):
         self.dryrun = dryrun
         self.source_dir = ''
         self.verbose = verbose
+        self.timestamp_helper = TimestampCompositorHelper(dryrun, verbose)
 
     def composite(self, filename, _):
         """Note an image to (maybe) copy.
         """
-        if '' == self.source_dir:
-            self.source_dir = os.getcwd()
         # TODO(jeff@purple.com): How do I specify multiple resolutions?
         if self.dryrun:
             print('ImageCompositor: ({fn})'.format(fn=filename))
             return
-        try:
-            src_time = os.stat(filename).st_mtime
-        except OSError as error:
-            print("Can't stat source file {fn}: {err}".format(
-                fn=source_filename,
-                err=str(error)))
-        self.images[filename] = src_time
+        self.timestamp_helper.composite(filename)
 
     def write(self):
         """Write my state.  This is my last contact with the world.
         """
         if self.dryrun:
             return
-        for filename, src_time in self.images.items():
-            try:
-                dst_time = os.stat(filename).st_mtime
-            except OSError as error:
-                # It's reasonable that it doesn't exist, but trigger an update.
-                dst_time = 0
-            try:
-                src_time = self.images[filename]
-            except KeyError:
-                # This shouldn't happen.
-                print('Missing source file and mtime: ' + filename)
-                return
-            needs_update = (dst_time < src_time)
-            if needs_update:
-                # TODO(jeff@purple.com): Write multiple sizes.
-                source_filename = self.source_dir + '/' + filename
-                print('Image.write: source="{sf}", file="{fn}"'.format(
-                    sf=source_filename, fn=filename))
-                Image.open(source_filename).save(filename)
+        def copy_image(dest_filename, source_filename):
+            """Copy source image to destination image(s)."""
+            Image.open(source_filename).save(dest_filename)
+        self.timestamp_helper.write(copy_image)
 
 class BlogCompositor(object):
     """A singleton page compositor.
@@ -306,11 +263,6 @@ class BlogCompositor(object):
 
     def write(self):
         """Write my state.  This is my last contact with the world.
-        """
-        if self.dryrun:
-            return
-    def write(self):
-        """Write my state.  This is my last contact with the world.
 
         Here's the plan:
 
@@ -335,6 +287,64 @@ class BlogCompositor(object):
         if self.dryrun:
             return
         # TODO(jeff@purple.com):  IMPLEMENT THIS.
+
+class TimestampCompositorHelper(object):
+    """Looks like a compositor, but handles checking timestamps.
+
+    We'd like to read and write files only if we need to.
+    """
+    def __init__(self, dryrun, verbose):
+        """Set up.  This is my first contact with the world.
+        """
+        self.dryrun = dryrun
+        self.verbose = verbose
+        self.source_dir = ''
+        # Map filenames to modification times.
+        self.files = {}
+
+    def composite(self, filename):
+        """Note the modtime of a file to (maybe) process.
+        """
+        if '' == self.source_dir:
+            self.source_dir = os.getcwd()
+        if self.dryrun:
+            print('TimestampCompositorHelper: ({fn})'.format(fn=filename))
+            return
+        try:
+            src_time = os.stat(filename).st_mtime
+        except OSError as error:
+            print("Can't stat source file {fn}: {err}".format(
+                fn=filename,
+                err=str(error)))
+        self.files[filename] = src_time
+
+    def write(self, file_action):
+        """Perform file_action if destination is not newer than source.
+
+        The function file_action should take two arguments: a source
+        file path and a destination file path.
+        """
+        if self.dryrun:
+            return
+        for filename, src_time in self.files.items():
+            try:
+                dst_time = os.stat(filename).st_mtime
+            except OSError:
+                # It's reasonable that it doesn't exist, but trigger an update.
+                dst_time = 0
+            try:
+                src_time = self.files[filename]
+            except KeyError:
+                # This shouldn't happen.
+                print('Missing source file and mtime: ' + filename)
+                return
+            needs_update = (dst_time < src_time)
+            if needs_update:
+                # TODO(jeff@purple.com): Write multiple sizes.
+                source_filename = self.source_dir + '/' + filename
+                print('Write: source="{sf}", file="{fn}"'.format(
+                    sf=source_filename, fn=filename))
+                file_action(filename, source_filename)
 
 class Site(object):
     """Encapsulate a web site's specification.
