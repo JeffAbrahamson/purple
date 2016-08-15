@@ -5,6 +5,7 @@ PATH=/usr/bin:/bin
 # Test purple.py by running against test_in/ and confirming that we
 # get what we expect (the contents of test_out_golden/ ).
 
+. venv/bin/activate
 if [ ! -e purple.py ]; then
     echo "Can't find purple.py.  Is this the right directory?"
     exit 1
