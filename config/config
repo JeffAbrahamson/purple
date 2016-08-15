@@ -6,6 +6,7 @@
 #
 # One-off pages.
 ^./jeff/thé$		redirect.html	StaticCompositor
+^./jeff/tea$		redirect.html	StaticCompositor
 #
 # More generic pages.
 ^blog.*html$		blog.html	BlogCompositor
